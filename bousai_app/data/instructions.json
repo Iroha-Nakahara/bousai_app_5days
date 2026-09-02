@@ -1,7 +1,18 @@
 [
   {
+    "id": 5,
+    "target": "住民",
+    "district": "北地区",
+    "content": "北地区の住民へ避難を呼びかけます",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月02日 16:49",
+    "updated_at": "2026年09月02日 16:49"
+  },
+  {
     "id": 4,
     "target": "住民",
+    "district": "南地区",
     "content": "B避難所へ避難してください",
     "shelter": "片瀬小学校",
     "status": "解除",
@@ -11,6 +22,7 @@
   {
     "id": 3,
     "target": "防災課",
+    "district": "市内全域",
     "content": "A地区の現地確認",
     "shelter": "",
     "status": "完了",
@@ -20,6 +32,7 @@
   {
     "id": 2,
     "target": "住民",
+    "district": "北地区",
     "content": "土砂災害の危険があるため避難してください",
     "shelter": "御所見小学校",
     "status": "解除",
@@ -29,6 +42,7 @@
   {
     "id": 1,
     "target": "道路管理課",
+    "district": "市内全域",
     "content": "○○橋の通行止め確認",
     "shelter": "",
     "status": "完了",

@@ -70,5 +70,22 @@ class WeatherWarningParserTests(unittest.TestCase):
         self.assertEqual(warnings[0]["name"], "土砂災害警戒情報")
 
 
+class BoardInstructionTests(unittest.TestCase):
+    def setUp(self):
+        self.client = app.test_client()
+        with self.client.session_transaction() as sess:
+            sess['logged_in'] = True
+
+    def test_create_instruction_from_board_form(self):
+        response = self.client.post('/board', data={
+            'target': '住民',
+            'content': '北地区の住民へ避難を呼びかけます',
+            'district': '北地区'
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('北地区の住民へ避難を呼びかけます', response.get_data(as_text=True))
+
+
 if __name__ == '__main__':
     unittest.main()

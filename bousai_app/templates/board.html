@@ -3,23 +3,231 @@
 {% block title %}指示・発信ボード - 防災アプリ{% endblock %}
 
 {% block content %}
-<h2>発信ボード</h2>
-<p>住民向けの発信を登録・確認できます。</p>
+<style>
+  .district-filter {
+    margin: 18px 0 24px;
+    padding: 18px 20px;
+    background: #f6f9fc;
+    border: 1px solid #dfe8f1;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(18, 48, 80, 0.04);
+  }
 
-<!-- 発信一覧 -->
-<h3>発信一覧</h3>
-{% if instructions %}
-<table border="1" cellpadding="5">
-  <tr>
-    <th>内容</th>
-  </tr>
-  {% for inst in instructions %}
-  <tr>
-    <td>{{ inst.content }}{% if inst.shelter %}（避難先: {{ inst.shelter }}）{% endif %}</td>
-  </tr>
-  {% endfor %}
-</table>
-{% else %}
-<p>登録されている指示はありません。</p>
-{% endif %}
+  .district-filter h3 {
+    margin: 0 0 12px;
+    font-size: 1.06rem;
+  }
+
+  .district-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .district-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #d5dfe9;
+    border-radius: 999px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1b2d3d;
+  }
+
+  .district-chip input {
+    accent-color: #0d6efd;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    cursor: pointer;
+  }
+
+  .district-chip.active {
+    background: #eaf3ff;
+    border-color: #89b9ff;
+    color: #0c4ea2;
+  }
+
+  .district-apply {
+    margin-top: 12px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #0c7ad8;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+
+<h2>発信ボード</h2>
+<p>地区を選択して、住民向けの発信を絞り込みできます。</p>
+
+<form method="get" action="/board" class="district-filter" id="districtForm">
+  <h3>地区選択</h3>
+  <div class="district-chip-list">
+    {% for district in district_options %}
+    <label class="district-chip {% if district in selected_regions %}active{% endif %}">
+      <input type="checkbox" name="district" value="{{ district }}" {% if district in selected_regions %}checked{% endif %}>
+      <span>{{ district }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <button type="submit" class="district-apply">適用</button>
+</form>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+  <section>
+    <h3>発信一覧</h3>
+    {% if instructions %}
+    <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <th>日時</th>
+        <th>地区</th>
+        <th>内容</th>
+      </tr>
+      {% for inst in instructions %}
+      <tr>
+        <td>{{ inst.updated_at or inst.created_at }}</td>
+        <td>{{ inst.district or '市内全域' }}</td>
+        <td>{{ inst.content }}{% if inst.shelter %}（避難先: {{ inst.shelter }}）{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p>登録されている指示はありません。</p>
+    {% endif %}
+  </section>
+
+  <section>
+    <h3>通報一覧</h3>
+    {% if reports %}
+    <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
+      <tr>
+        <th>日時</th>
+        <th>地区</th>
+        <th>内容</th>
+        <th>状態</th>
+      </tr>
+      {% for report in reports %}
+      <tr>
+        <td>{{ report.updated_at or report.created_at }}</td>
+        <td>{{ report.district or '市内全域' }}</td>
+        <td>{{ report.content }}</td>
+        <td>{{ report.status }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p>登録されている通報はありません。</p>
+    {% endif %}
+  </section>
+</div>
+
+<div style="margin-top: 28px; border-top: 1px solid #dfe8f1; padding-top: 20px;">
+  <h3>指示入力</h3>
+  <form method="post" action="/board" style="background: #f8fbff; border: 1px solid #dfe8f1; border-radius: 12px; padding: 16px;">
+    <div style="margin-bottom: 12px;">
+      <label style="display: inline-block; margin-right: 20px; font-weight: 600;">
+        <input type="radio" name="target" value="住民" checked> 住民向け
+      </label>
+      <label style="display: inline-block; font-weight: 600;">
+        <input type="radio" name="target" value="職員"> 職員向け
+      </label>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label style="display: block; font-weight: 600; margin-bottom: 6px;">地区選択</label>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+        {% for district in district_options %}
+        <label style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #d5dfe9; border-radius: 999px; padding: 7px 12px;">
+          <input type="checkbox" name="district" value="{{ district }}" {% if district in selected_regions %}checked{% endif %}>
+          {{ district }}
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div style="margin-bottom: 12px;">
+      <label for="instruction-content" style="display: block; font-weight: 600; margin-bottom: 6px;">指示内容</label>
+      <textarea id="instruction-content" name="content" rows="4" style="width: 100%; box-sizing: border-box; resize: vertical;" placeholder="発信内容を入力してください"></textarea>
+    </div>
+
+    <button type="submit" class="district-apply">指示を登録</button>
+  </form>
+</div>
+
+<p style="margin-top: 16px;"><a href="/reports?district={{ selected_regions|join('&district=') }}">通報一覧ページへ</a></p>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const checkboxes = document.querySelectorAll('input[name="district"]');
+    const allDistrict = '市内全域';
+
+    function syncDistrictSelection() {
+      const allCheckbox = Array.from(checkboxes).find(function (item) {
+        return item.value === allDistrict;
+      });
+
+      const selected = Array.from(checkboxes).filter(function (item) {
+        return item.checked;
+      });
+
+      if (selected.length === 0) {
+        if (allCheckbox) {
+          allCheckbox.checked = true;
+        }
+      }
+
+      if (allCheckbox && allCheckbox.checked) {
+        checkboxes.forEach(function (other) {
+          if (other !== allCheckbox) {
+            other.checked = false;
+          }
+        });
+      }
+    }
+
+    checkboxes.forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        const label = checkbox.closest('.district-chip');
+        if (label) {
+          label.classList.toggle('active', checkbox.checked);
+        }
+
+        if (checkbox.value === allDistrict && checkbox.checked) {
+          checkboxes.forEach(function (other) {
+            if (other !== checkbox && other.value !== allDistrict) {
+              other.checked = false;
+              const otherLabel = other.closest('.district-chip');
+              if (otherLabel) {
+                otherLabel.classList.remove('active');
+              }
+            }
+          });
+        }
+
+        if (checkbox.value !== allDistrict && checkbox.checked) {
+          const allCheckbox = Array.from(checkboxes).find(function (item) {
+            return item.value === allDistrict;
+          });
+          if (allCheckbox) {
+            allCheckbox.checked = false;
+            const allLabel = allCheckbox.closest('.district-chip');
+            if (allLabel) {
+              allLabel.classList.remove('active');
+            }
+          }
+        }
+
+        syncDistrictSelection();
+      });
+    });
+
+    syncDistrictSelection();
+  });
+</script>
 {% endblock %}

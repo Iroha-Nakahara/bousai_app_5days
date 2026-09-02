@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}通報一覧 - 防災アプリ{% endblock %}
+
+{% block content %}
+<style>
+  .district-filter {
+    margin: 18px 0 24px;
+    padding: 18px 20px;
+    background: #f6f9fc;
+    border: 1px solid #dfe8f1;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(18, 48, 80, 0.04);
+  }
+
+  .district-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .district-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: white;
+    border: 1px solid #d5dfe9;
+    border-radius: 999px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-weight: 600;
+    color: #1b2d3d;
+  }
+
+  .district-chip input {
+    accent-color: #0d6efd;
+    width: 16px;
+    height: 16px;
+    margin: 0;
+  }
+
+  .district-chip.active {
+    background: #eaf3ff;
+    border-color: #89b9ff;
+    color: #0c4ea2;
+  }
+
+  .district-apply {
+    margin-top: 12px;
+    padding: 8px 14px;
+    border: none;
+    border-radius: 8px;
+    background: #0c7ad8;
+    color: white;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+
+<h2>通報一覧</h2>
+<p>市民からの通報を地区別に確認できます。</p>
+
+<form method="get" action="/reports" class="district-filter" id="districtForm">
+  <h3>地区選択</h3>
+  <div class="district-chip-list">
+    {% for district in district_options %}
+    <label class="district-chip {% if district in selected_regions %}active{% endif %}">
+      <input type="checkbox" name="district" value="{{ district }}" {% if district in selected_regions %}checked{% endif %}>
+      <span>{{ district }}</span>
+    </label>
+    {% endfor %}
+  </div>
+  <button type="submit" class="district-apply">適用</button>
+</form>
+
+{% if reports %}
+<table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
+  <tr>
+    <th>日時</th>
+    <th>地区</th>
+    <th>内容</th>
+    <th>状態</th>
+  </tr>
+  {% for report in reports %}
+  <tr>
+    <td>{{ report.updated_at or report.created_at }}</td>
+    <td>{{ report.district or '市内全域' }}</td>
+    <td>{{ report.content }}</td>
+    <td>{{ report.status }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p>登録されている通報はありません。</p>
+{% endif %}
+
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const checkboxes = document.querySelectorAll('input[name="district"]');
+    const allDistrict = '市内全域';
+
+    checkboxes.forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        const label = checkbox.closest('.district-chip');
+        if (label) {
+          label.classList.toggle('active', checkbox.checked);
+        }
+
+        if (checkbox.value === allDistrict && checkbox.checked) {
+          checkboxes.forEach(function (other) {
+            if (other !== checkbox && other.value !== allDistrict) {
+              other.checked = false;
+              const otherLabel = other.closest('.district-chip');
+              if (otherLabel) {
+                otherLabel.classList.remove('active');
+              }
+            }
+          });
+        }
+
+        if (checkbox.value !== allDistrict && checkbox.checked) {
+          const allCheckbox = Array.from(checkboxes).find(function (item) {
+            return item.value === allDistrict;
+          });
+          if (allCheckbox) {
+            allCheckbox.checked = false;
+            const allLabel = allCheckbox.closest('.district-chip');
+            if (allLabel) {
+              allLabel.classList.remove('active');
+            }
+          }
+        }
+      });
+    });
+  });
+</script>
+{% endblock %}

@@ -93,6 +93,49 @@ def load_json(path, default):
 
 shelters = load_json(DATA_FILE, [])
 instructions = load_json(INSTRUCTIONS_FILE, [])
+DISTRICT_OPTIONS = [
+    '市内全域',
+    '北地区',
+    '南地区',
+    '東地区',
+    '西地区',
+    '中央地区',
+    '浪岡地区'
+]
+CITIZEN_REPORTS = [
+    {
+        'id': 1,
+        'district': '南地区',
+        'content': '川沿いの通路に土が流れ出ていて危険です。',
+        'status': '未対応',
+        'created_at': '2026年07月14日 20:15',
+        'updated_at': '2026年07月14日 20:15'
+    },
+    {
+        'id': 2,
+        'district': '北地区',
+        'content': '木が傾いていて通行に支障があります。',
+        'status': '対応中',
+        'created_at': '2026年07月14日 19:40',
+        'updated_at': '2026年07月14日 19:40'
+    },
+    {
+        'id': 3,
+        'district': '東地区',
+        'content': '道路の冠水が始まっており、車両が通れません。',
+        'status': '要確認',
+        'created_at': '2026年07月14日 18:55',
+        'updated_at': '2026年07月14日 18:55'
+    },
+    {
+        'id': 4,
+        'district': '市内全域',
+        'content': '強風で看板が落ちそうです。周辺確認をお願いします。',
+        'status': '対応済み',
+        'created_at': '2026年07月14日 18:10',
+        'updated_at': '2026年07月14日 18:10'
+    }
+]
 
 def save_instructions():
     """指示ボードのデータをファイルに保存する"""
@@ -151,6 +194,28 @@ def format_report_time(iso_str):
 def filter_shelters(district=None):
     """district 指定があれば一致する避難所のみ、なければ全件を返す"""
     return [s for s in shelters if not district or s.get('district') == district]
+
+
+def parse_japanese_datetime(value):
+    """日本語の日時文字列を datetime に変換して、比較しやすくする"""
+    if not value:
+        return datetime.min
+
+    for fmt in (
+        '%Y年%m月%d日 %H:%M',
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y/%m/%d %H:%M'
+    ):
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            pass
+
+    try:
+        return datetime.fromisoformat(value.replace('Z', '+00:00')).astimezone(JST)
+    except ValueError:
+        return datetime.min
 
 
 def parse_area_warnings(warning_data):
@@ -352,12 +417,74 @@ def all_shelters():
     return render_template('search_results.html', results=shelters)
 
 
+def filter_board_items(items, selected_regions):
+    """地区フィルタを適用して、最新順に並べた一覧を返す"""
+    if '市内全域' not in selected_regions:
+        items = [
+            item for item in items
+            if (item.get('district') or '市内全域') in selected_regions
+        ]
+    return sorted(
+        items,
+        key=lambda item: parse_japanese_datetime(item.get('updated_at') or item.get('created_at')),
+        reverse=True
+    )
+
+
 # 指示ボード：住民向けの指示を一覧で確認する
-@app.route('/board')
+@app.route('/board', methods=['GET', 'POST'])
 @login_required
 def board():
-    resident_instructions = [i for i in instructions if i.get('target') == '住民']
-    return render_template('board.html', instructions=resident_instructions)
+    selected_regions = request.args.getlist('district') or ['市内全域']
+
+    if request.method == 'POST':
+        target = request.form.get('target', '住民')
+        content = request.form.get('content', '').strip()
+        district_values = request.form.getlist('district')
+        district = district_values[0] if district_values else '市内全域'
+
+        if content:
+            instructions.insert(0, {
+                'id': max((i.get('id', 0) for i in instructions), default=0) + 1,
+                'target': target,
+                'district': district,
+                'content': content,
+                'shelter': '',
+                'status': '発信中',
+                'created_at': get_japan_time(),
+                'updated_at': get_japan_time()
+            })
+            save_instructions()
+
+        selected_regions = district_values or ['市内全域']
+
+    resident_instructions = filter_board_items(
+        [i for i in instructions if i.get('target') == '住民'],
+        selected_regions
+    )
+    citizen_reports = filter_board_items(CITIZEN_REPORTS, selected_regions)
+
+    return render_template(
+        'board.html',
+        instructions=resident_instructions,
+        reports=citizen_reports,
+        district_options=DISTRICT_OPTIONS,
+        selected_regions=selected_regions
+    )
+
+
+@app.route('/reports')
+@login_required
+def reports():
+    selected_regions = request.args.getlist('district') or ['市内全域']
+    citizen_reports = filter_board_items(CITIZEN_REPORTS, selected_regions)
+
+    return render_template(
+        'reports.html',
+        reports=citizen_reports,
+        district_options=DISTRICT_OPTIONS,
+        selected_regions=selected_regions
+    )
 
 # 検索結果ページ：templates/search_results.html を返す
 @app.route('/search_results')
