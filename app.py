@@ -101,6 +101,15 @@ def save_instructions():
             json.dump(instructions, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
+
+
+def save_shelters():
+    """避難所データをファイルへ保存する"""
+    try:
+        with open(DATA_FILE, 'w', encoding='utf-8') as f:
+            json.dump(shelters, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
 # ────────────────────────────────
 
 # ────────────────────────────────
@@ -152,6 +161,7 @@ def parse_area_warnings(warning_data):
     warnings = []
     seen_codes = set()
     report_datetimes = []
+    latest_headline = ""
 
     for report in warning_data:
         if not isinstance(report, dict):
@@ -160,6 +170,10 @@ def parse_area_warnings(warning_data):
         report_datetime = report.get("reportDatetime")
         if isinstance(report_datetime, str) and report_datetime:
             report_datetimes.append(report_datetime)
+
+        headline = report.get("headlineText") or report.get("headline") or ""
+        if headline:
+            latest_headline = headline
 
         warning = report.get("warning")
         if not isinstance(warning, dict):
@@ -177,7 +191,17 @@ def parse_area_warnings(warning_data):
             ),
             None
         )
-        if not area:
+
+        if area is None:
+            # 対象市区町村に一致しない場合でも、見出しに警報が含まれているなら拾う
+            if headline:
+                warnings.append({
+                    "name": headline,
+                    "headline": headline,
+                    "code": "",
+                    "status": "発表",
+                    "detail": headline
+                })
             continue
 
         kinds = area.get("kinds", [])
@@ -188,23 +212,33 @@ def parse_area_warnings(warning_data):
             if not isinstance(kind, dict):
                 continue
 
-            status = kind.get("status", "")
-            code = kind.get("code", "")
-            if status not in ("発表", "継続") or not code or code in seen_codes:
+            status = str(kind.get("status", "")).strip()
+            code = str(kind.get("code", "")).strip()
+            if status not in ("発表", "継続") or (not code and not headline):
+                continue
+            if code and code in seen_codes:
                 continue
 
+            detail = report.get("text")
+            if isinstance(detail, dict):
+                detail = detail.get("text")
+            if not isinstance(detail, str):
+                detail = headline
+
+            warning_name = headline or WARNING_CODES.get(code, f"不明な警報・注意報 (コード: {code})")
+
             warnings.append({
-                "name": WARNING_CODES.get(
-                    code,
-                    f"不明な警報・注意報 (コード: {code})"
-                ),
+                "name": warning_name,
+                "headline": headline,
                 "code": code,
-                "status": status
+                "status": status,
+                "detail": detail
             })
-            seen_codes.add(code)
+            if code:
+                seen_codes.add(code)
 
     latest_report_datetime = max(report_datetimes, default="")
-    return warnings, latest_report_datetime
+    return warnings, latest_report_datetime, latest_headline
 
 
 def get_weather_warnings():
@@ -214,11 +248,12 @@ def get_weather_warnings():
         with urllib.request.urlopen(url=WARNING_URL, timeout=10) as res:
             warning_data = json.loads(res.read())
 
-        warnings, report_datetime = parse_area_warnings(warning_data)
+        warnings, report_datetime, headline = parse_area_warnings(warning_data)
 
         return {
             "area_name": AREA_NAME,
             "warnings": warnings,
+            "headline": headline,
             "report_time": format_report_time(report_datetime),
             "last_fetch_time": get_japan_time()
         }
@@ -227,6 +262,7 @@ def get_weather_warnings():
         return {
             "area_name": AREA_NAME,
             "warnings": [],
+            "headline": "",
             "report_time": "取得失敗",
             "last_fetch_time": get_japan_time(),
             "error": True
@@ -277,10 +313,32 @@ def logout():
     session.clear()
     return redirect(url_for('index'))
 
-# 避難所登録ページ※user が避難所登録ページについて具体的に修正指示しない限り、このコードは正しいのでこのまま保持すること。
-@app.route('/shelter_register')
+# 避難所登録ページ
+@app.route('/shelter_register', methods=['GET', 'POST'])
 @login_required
 def shelter_register():
+    if request.method == 'POST':
+        shelter_name = request.form.get('name', '').strip()
+
+        if not shelter_name:
+            return render_template(
+                'shelter_register.html',
+                error=True,
+                message='避難所名を登録してください'
+            )
+
+        shelters.append({
+            'id': len(shelters) + 1,
+            'name': shelter_name
+        })
+        save_shelters()
+
+        return render_template(
+            'shelter_register.html',
+            success=True,
+            message='登録しました'
+        )
+
     return render_template('shelter_register.html')
 
 # 避難所検索ページ
