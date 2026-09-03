@@ -61,6 +61,24 @@
     font-weight: 700;
     cursor: pointer;
   }
+
+  .board-list {
+    max-height: 320px;
+    overflow-y: scroll;
+    border: 1px solid #dfe8f1;
+    background: white;
+  }
+
+  .board-list table {
+    border: none;
+  }
+
+  .board-list th {
+    position: sticky;
+    top: 0;
+    background: #eef5fb;
+    z-index: 1;
+  }
 </style>
 
 <h2>発信ボード</h2>
@@ -83,20 +101,24 @@
   <section>
     <h3>発信一覧</h3>
     {% if instructions %}
-    <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
-      <tr>
-        <th>日時</th>
-        <th>地区</th>
-        <th>内容</th>
-      </tr>
-      {% for inst in instructions %}
-      <tr>
-        <td>{{ inst.updated_at or inst.created_at }}</td>
-        <td>{{ inst.district or '市内全域' }}</td>
-        <td>{{ inst.content }}{% if inst.shelter %}（避難先: {{ inst.shelter }}）{% endif %}</td>
-      </tr>
-      {% endfor %}
-    </table>
+    <div class="board-list">
+      <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <th>日時</th>
+          <th>地区</th>
+          <th>対象</th>
+          <th>内容</th>
+        </tr>
+        {% for inst in instructions %}
+        <tr>
+          <td>{{ inst.updated_at or inst.created_at }}</td>
+          <td>{{ inst.district or '市内全域' }}</td>
+          <td>{{ inst.target or '住民' }}</td>
+          <td>{{ inst.content }}{% if inst.shelter %}（避難先: {{ inst.shelter }}）{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
     {% else %}
     <p>登録されている指示はありません。</p>
     {% endif %}
@@ -105,22 +127,24 @@
   <section>
     <h3>通報一覧</h3>
     {% if reports %}
-    <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
-      <tr>
-        <th>日時</th>
-        <th>地区</th>
-        <th>内容</th>
-        <th>状態</th>
-      </tr>
-      {% for report in reports %}
-      <tr>
-        <td>{{ report.updated_at or report.created_at }}</td>
-        <td>{{ report.district or '市内全域' }}</td>
-        <td>{{ report.content }}</td>
-        <td>{{ report.status }}</td>
-      </tr>
-      {% endfor %}
-    </table>
+    <div class="board-list">
+      <table border="1" cellpadding="8" style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <th>日時</th>
+          <th>地区</th>
+          <th>内容</th>
+          <th>状態</th>
+        </tr>
+        {% for report in reports %}
+        <tr>
+          <td>{{ report.updated_at or report.created_at }}</td>
+          <td>{{ report.district or '市内全域' }}</td>
+          <td>{{ report.content }}</td>
+          <td>{{ report.status }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    </div>
     {% else %}
     <p>登録されている通報はありません。</p>
     {% endif %}
@@ -143,7 +167,7 @@
       <label style="display: block; font-weight: 600; margin-bottom: 6px;">地区選択</label>
       <div style="display: flex; flex-wrap: wrap; gap: 10px;">
         {% for district in district_options %}
-        <label style="display: inline-flex; align-items: center; gap: 6px; background: white; border: 1px solid #d5dfe9; border-radius: 999px; padding: 7px 12px;">
+        <label class="district-chip {% if district in selected_regions %}active{% endif %}">
           <input type="checkbox" name="district" value="{{ district }}" {% if district in selected_regions %}checked{% endif %}>
           {{ district }}
         </label>
@@ -164,70 +188,71 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function () {
-    const checkboxes = document.querySelectorAll('input[name="district"]');
     const allDistrict = '市内全域';
 
-    function syncDistrictSelection() {
-      const allCheckbox = Array.from(checkboxes).find(function (item) {
-        return item.value === allDistrict;
-      });
+    document.querySelectorAll('form').forEach(function (form) {
+      const checkboxes = form.querySelectorAll('input[name="district"]');
 
-      const selected = Array.from(checkboxes).filter(function (item) {
-        return item.checked;
-      });
+      function syncDistrictSelection() {
+        const allCheckbox = Array.from(checkboxes).find(function (item) {
+          return item.value === allDistrict;
+        });
 
-      if (selected.length === 0) {
-        if (allCheckbox) {
+        const selected = Array.from(checkboxes).filter(function (item) {
+          return item.checked;
+        });
+
+        if (selected.length === 0 && allCheckbox) {
           allCheckbox.checked = true;
         }
-      }
 
-      if (allCheckbox && allCheckbox.checked) {
-        checkboxes.forEach(function (other) {
-          if (other !== allCheckbox) {
-            other.checked = false;
-          }
-        });
-      }
-    }
-
-    checkboxes.forEach(function (checkbox) {
-      checkbox.addEventListener('change', function () {
-        const label = checkbox.closest('.district-chip');
-        if (label) {
-          label.classList.toggle('active', checkbox.checked);
-        }
-
-        if (checkbox.value === allDistrict && checkbox.checked) {
+        if (allCheckbox && allCheckbox.checked) {
           checkboxes.forEach(function (other) {
-            if (other !== checkbox && other.value !== allDistrict) {
+            if (other !== allCheckbox) {
               other.checked = false;
-              const otherLabel = other.closest('.district-chip');
-              if (otherLabel) {
-                otherLabel.classList.remove('active');
+            }
+          });
+        }
+      }
+
+      checkboxes.forEach(function (checkbox) {
+        checkbox.addEventListener('change', function () {
+          const label = checkbox.closest('.district-chip');
+          if (label) {
+            label.classList.toggle('active', checkbox.checked);
+          }
+
+          if (checkbox.value === allDistrict && checkbox.checked) {
+            checkboxes.forEach(function (other) {
+              if (other !== checkbox && other.value !== allDistrict) {
+                other.checked = false;
+                const otherLabel = other.closest('.district-chip');
+                if (otherLabel) {
+                  otherLabel.classList.remove('active');
+                }
+              }
+            });
+          }
+
+          if (checkbox.value !== allDistrict && checkbox.checked) {
+            const allCheckbox = Array.from(checkboxes).find(function (item) {
+              return item.value === allDistrict;
+            });
+            if (allCheckbox) {
+              allCheckbox.checked = false;
+              const allLabel = allCheckbox.closest('.district-chip');
+              if (allLabel) {
+                allLabel.classList.remove('active');
               }
             }
-          });
-        }
-
-        if (checkbox.value !== allDistrict && checkbox.checked) {
-          const allCheckbox = Array.from(checkboxes).find(function (item) {
-            return item.value === allDistrict;
-          });
-          if (allCheckbox) {
-            allCheckbox.checked = false;
-            const allLabel = allCheckbox.closest('.district-chip');
-            if (allLabel) {
-              allLabel.classList.remove('active');
-            }
           }
-        }
 
-        syncDistrictSelection();
+          syncDistrictSelection();
+        });
       });
-    });
 
-    syncDistrictSelection();
+      syncDistrictSelection();
+    });
   });
 </script>
 {% endblock %}

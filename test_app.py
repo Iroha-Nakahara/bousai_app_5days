@@ -1,6 +1,6 @@
 import unittest
 
-from app import app, shelters, parse_area_warnings
+from app import app, instructions, shelters, parse_area_warnings
 
 
 class ShelterRegisterTests(unittest.TestCase):
@@ -75,6 +75,10 @@ class BoardInstructionTests(unittest.TestCase):
         self.client = app.test_client()
         with self.client.session_transaction() as sess:
             sess['logged_in'] = True
+        self.original_instructions = instructions.copy()
+
+    def tearDown(self):
+        instructions[:] = self.original_instructions
 
     def test_create_instruction_from_board_form(self):
         response = self.client.post('/board', data={
@@ -85,6 +89,19 @@ class BoardInstructionTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn('北地区の住民へ避難を呼びかけます', response.get_data(as_text=True))
+
+    def test_instruction_list_shows_target_and_staff_instruction(self):
+        response = self.client.post('/board', data={
+            'target': '職員',
+            'content': '中央地区の職員へ現地確認を依頼します',
+            'district': '中央地区'
+        })
+
+        page = response.get_data(as_text=True)
+
+        self.assertIn('中央地区', page)
+        self.assertIn('職員', page)
+        self.assertIn('中央地区の職員へ現地確認を依頼します', page)
 
 
 if __name__ == '__main__':

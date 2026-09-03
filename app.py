@@ -431,7 +431,7 @@ def filter_board_items(items, selected_regions):
     )
 
 
-# 指示ボード：住民向けの指示を一覧で確認する
+# 指示ボード：発信内容を一覧で確認する
 @app.route('/board', methods=['GET', 'POST'])
 @login_required
 def board():
@@ -458,15 +458,12 @@ def board():
 
         selected_regions = district_values or ['市内全域']
 
-    resident_instructions = filter_board_items(
-        [i for i in instructions if i.get('target') == '住民'],
-        selected_regions
-    )
+    board_instructions = filter_board_items(instructions, selected_regions)
     citizen_reports = filter_board_items(CITIZEN_REPORTS, selected_regions)
 
     return render_template(
         'board.html',
-        instructions=resident_instructions,
+        instructions=board_instructions,
         reports=citizen_reports,
         district_options=DISTRICT_OPTIONS,
         selected_regions=selected_regions

@@ -1,5 +1,85 @@
 [
   {
+    "id": 13,
+    "target": "職員",
+    "district": "中央地区",
+    "content": "中央地区の職員へ現地確認を依頼します",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:26",
+    "updated_at": "2026年09月03日 10:26"
+  },
+  {
+    "id": 12,
+    "target": "職員",
+    "district": "中央地区",
+    "content": "中央地区の職員へ現地確認を依頼します",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:26",
+    "updated_at": "2026年09月03日 10:26"
+  },
+  {
+    "id": 11,
+    "target": "職員",
+    "district": "中央地区",
+    "content": "中央地区の職員へ現地確認を依頼します",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:24",
+    "updated_at": "2026年09月03日 10:24"
+  },
+  {
+    "id": 10,
+    "target": "職員",
+    "district": "中央地区",
+    "content": "中央地区の職員へ現地確認を依頼します",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:23",
+    "updated_at": "2026年09月03日 10:23"
+  },
+  {
+    "id": 9,
+    "target": "住民",
+    "district": "南地区",
+    "content": "大雨特別警報が出されました",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:20",
+    "updated_at": "2026年09月03日 10:20"
+  },
+  {
+    "id": 8,
+    "target": "住民",
+    "district": "北地区",
+    "content": "北地区の住民へ避難を呼びかけます",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:16",
+    "updated_at": "2026年09月03日 10:16"
+  },
+  {
+    "id": 7,
+    "target": "住民",
+    "district": "北地区",
+    "content": "北地区の住民へ避難を呼びかけます",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:16",
+    "updated_at": "2026年09月03日 10:16"
+  },
+  {
+    "id": 6,
+    "target": "住民",
+    "district": "北地区",
+    "content": "北地区の住民へ避難を呼びかけます",
+    "shelter": "",
+    "status": "発信中",
+    "created_at": "2026年09月03日 10:16",
+    "updated_at": "2026年09月03日 10:16"
+  },
+  {
     "id": 5,
     "target": "住民",
     "district": "北地区",
